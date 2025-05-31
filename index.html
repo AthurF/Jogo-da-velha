@@ -403,9 +403,10 @@
         // Alternar modo de jogo
         function toggleGameMode() {
             gameState.vsComputer = !gameState.vsComputer;
-            modeBtn.innerHTML = gameState.vsComputer        
+            modeBtn.innerHTML = gameState.vsComputer
+                ? '<i class="fas fa-user mr-2"></i>Vs Guthiarleyson'        
                 : '<i class="fas fa-robot mr-2"></i>Vs Jogador';
-                ? '<i class="fas fa-user mr-2"></i>Vs Guthiarleyson'
+                
 
             resetGame();
         }
