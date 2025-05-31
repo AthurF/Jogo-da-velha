@@ -95,7 +95,7 @@
                 </button>
                 <button id="modeBtn"
                     class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition">
-                    <i class="fas fa-robot mr-2"></i>Vs Guthiarleyson
+                    <i class="fas fa-robot mr-2"></i>Vs Jogador
                 </button>
             </div>
         </div>
@@ -404,7 +404,7 @@
         function toggleGameMode() {
             gameState.vsComputer = !gameState.vsComputer;
             modeBtn.innerHTML = gameState.vsComputer
-                ? '<i class="fas fa-user mr-2"></i>Vs Jogador'
+                ? '<i class="fas fa-user mr-2"></i>Vs Guthiarleyson'
                 : '<i class="fas fa-robot mr-2"></i>Vs Computador';
 
             resetGame();
