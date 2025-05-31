@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="shortcut icon" href="asssets/tic-tac-toe_39453.ico" type="image/x-icon">
+    <title>Jogo da Velha Online</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: scale(0.8);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        @keyframes pop {
+            0% {
+                transform: scale(0);
+            }
+
+            80% {
+                transform: scale(1.1);
+            }
+
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        .cell {
+            transition: all 0.3s ease;
+        }
+
+        .cell:hover:not(.occupied) {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .x-symbol {
+            color: #3b82f6;
+        }
+
+        .o-symbol {
+            color: #ef4444;
+        }
+
+        .winning-cell {
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                background-color: rgba(16, 185, 129, 0.1);
+            }
+
+            50% {
+                background-color: rgba(16, 185, 129, 0.3);
+            }
+        }
+    </style>
+</head>
+
+<body class="bg-gray-900 min-h-screen flex flex-col items-center justify-center p-4 font-sans">
+    <div class="container mx-auto max-w-md">
+        <!-- Cabeçalho -->
+        <div class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-white mb-2">Jogo da Velha</h1>
+            <div class="flex justify-center items-center space-x-8 mb-4">
+                <div class="flex items-center">
+                    <span class="text-2xl x-symbol font-bold mr-2"><i class="fas fa-times"></i></span>
+                    <span class="text-white font-medium">Jogador X</span>
+                </div>
+                <div class="flex items-center">
+                    <span class="text-2xl o-symbol font-bold mr-2"><i class="far fa-circle"></i></span>
+                    <span class="text-white font-medium">Jogador O</span>
+                </div>
+            </div>
+
+            <div id="status" class="text-xl font-semibold text-white mb-4 h-8">
+                Vez do Jogador X
+            </div>
+
+            <div class="flex justify-center space-x-4">
+                <button id="resetBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition">
+                    <i class="fas fa-redo mr-2"></i>Reiniciar
+                </button>
+                <button id="modeBtn"
+                    class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition">
+                    <i class="fas fa-robot mr-2"></i>Vs Guthiarleyson
+                </button>
+            </div>
+        </div>
+
+        <!-- Tabuleiro -->
+        <div class="grid grid-cols-3 gap-3 mb-8">
+            <!-- As células serão geradas pelo JavaScript -->
+        </div>
+
+        <!-- Placar -->
+        <div class="bg-gray-800 rounded-xl p-4 text-white">
+            <h3 class="text-lg font-semibold mb-3 text-center">Placar</h3>
+            <div class="flex justify-around">
+                <div class="text-center">
+                    <div class="text-2xl x-symbol font-bold"><i class="fas fa-times"></i></div>
+                    <div id="xScore" class="text-3xl font-bold">0</div>
+                    <div class="text-sm text-gray-300">Vitórias</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-2xl text-gray-300 font-bold">-</div>
+                    <div id="ties" class="text-3xl font-bold">0</div>
+                    <div class="text-sm text-gray-300">Empates</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-2xl o-symbol font-bold"><i class="far fa-circle"></i></div>
+                    <div id="oScore" class="text-3xl font-bold">0</div>
+                    <div class="text-sm text-gray-300">Vitórias</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de vitória -->
+    <div id="winModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+        <div class="bg-gray-800 rounded-xl p-6 max-w-sm w-full mx-4 text-center animate-fadeIn">
+            <h2 id="winMessage" class="text-2xl font-bold text-white mb-4"></h2>
+            <div class="flex justify-center space-x-4">
+                <button id="playAgainBtn"
+                    class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition">
+                    <i class="fas fa-play mr-2"></i>Jogar Novamente
+                </button>
+                <button id="closeModalBtn"
+                    class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition">
+                    <i class="fas fa-times mr-2"></i>Fechar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Estado do jogo
+        const gameState = {
+            board: ['', '', '', '', '', '', '', '', ''],
+            currentPlayer: 'X',
+            gameActive: true,
+            scores: { X: 0, O: 0, ties: 0 },
+            vsComputer: false,
+            difficulty: 'easy' // easy, medium, hard
+        };
+
+        // Elementos do DOM
+        const boardElement = document.querySelector('.grid');
+        const statusElement = document.getElementById('status');
+        const xScoreElement = document.getElementById('xScore');
+        const oScoreElement = document.getElementById('oScore');
+        const tiesElement = document.getElementById('ties');
+        const resetBtn = document.getElementById('resetBtn');
+        const modeBtn = document.getElementById('modeBtn');
+        const winModal = document.getElementById('winModal');
+        const winMessage = document.getElementById('winMessage');
+        const playAgainBtn = document.getElementById('playAgainBtn');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+
+        // Condições de vitória
+        const winningConditions = [
+            [0, 1, 2], [3, 4, 5], [6, 7, 8], // linhas
+            [0, 3, 6], [1, 4, 7], [2, 5, 8], // colunas
+            [0, 4, 8], [2, 4, 6]             // diagonais
+        ];
+
+        // Inicializar o jogo
+        function initGame() {
+            renderBoard();
+            updateStatus();
+            updateScores();
+        }
+
+        // Renderizar o tabuleiro
+        function renderBoard() {
+            boardElement.innerHTML = '';
+
+            gameState.board.forEach((cell, index) => {
+                const cellElement = document.createElement('div');
+                cellElement.classList.add(
+                    'cell', 'w-full', 'h-24', 'md:h-32',
+                    'bg-gray-800', 'rounded-lg', 'flex',
+                    'items-center', 'justify-center',
+                    'text-5xl', 'font-bold', 'cursor-pointer'
+                );
+
+                if (cell !== '') {
+                    cellElement.classList.add('occupied');
+                    cellElement.innerHTML = cell === 'X'
+                        ? '<i class="fas fa-times x-symbol"></i>'
+                        : '<i class="far fa-circle o-symbol"></i>';
+                    cellElement.style.animation = 'pop 0.3s ease-out';
+                }
+
+                cellElement.addEventListener('click', () => handleCellClick(index));
+                boardElement.appendChild(cellElement);
+            });
+        }
+
+        // Atualizar status do jogo
+        function updateStatus() {
+            if (gameState.gameActive) {
+                statusElement.textContent = `Vez do Jogador ${gameState.currentPlayer}`;
+            }
+        }
+
+        // Atualizar placar
+        function updateScores() {
+            xScoreElement.textContent = gameState.scores.X;
+            oScoreElement.textContent = gameState.scores.O;
+            tiesElement.textContent = gameState.scores.ties;
+        }
+
+        // Manipular clique na célula
+        function handleCellClick(index) {
+            if (!gameState.gameActive || gameState.board[index] !== '') return;
+
+            makeMove(index, gameState.currentPlayer);
+
+            // Verificar vitória ou empate
+            const winner = checkWinner();
+            if (winner) {
+                handleGameEnd(winner);
+                return;
+            }
+
+            // Alternar jogador
+            changePlayer();
+
+            // Se for contra o computador e for a vez dele
+            if (gameState.vsComputer && gameState.currentPlayer === 'O' && gameState.gameActive) {
+                setTimeout(computerMove, 500);
+            }
+        }
+
+        // Realizar jogada
+        function makeMove(index, player) {
+            gameState.board[index] = player;
+            renderBoard();
+        }
+
+        // Alternar jogador
+        function changePlayer() {
+            gameState.currentPlayer = gameState.currentPlayer === 'X' ? 'O' : 'X';
+            updateStatus();
+        }
+
+        // Verificar vencedor
+        function checkWinner() {
+            for (let condition of winningConditions) {
+                const [a, b, c] = condition;
+                if (gameState.board[a] &&
+                    gameState.board[a] === gameState.board[b] &&
+                    gameState.board[a] === gameState.board[c]) {
+
+                    // Destacar células vencedoras
+                    condition.forEach(index => {
+                        boardElement.children[index].classList.add('winning-cell');
+                    });
+
+                    return gameState.board[a];
+                }
+            }
+
+            // Verificar empate
+            if (!gameState.board.includes('')) {
+                return 'tie';
+            }
+
+            return null;
+        }
+
+        // Finalizar jogo
+        function handleGameEnd(winner) {
+            gameState.gameActive = false;
+
+            if (winner === 'tie') {
+                gameState.scores.ties++;
+                showWinModal('Empate!');
+            } else {
+                gameState.scores[winner]++;
+                showWinModal(`Jogador ${winner} venceu!`);
+            }
+
+            updateScores();
+        }
+
+        // Mostrar modal de vitória
+        function showWinModal(message) {
+            winMessage.textContent = message;
+            winModal.classList.remove('hidden');
+        }
+
+        // Reiniciar jogo
+        function resetGame() {
+            gameState.board = ['', '', '', '', '', '', '', '', ''];
+            gameState.currentPlayer = 'X';
+            gameState.gameActive = true;
+            renderBoard();
+            updateStatus();
+            winModal.classList.add('hidden');
+        }
+
+        // Jogada do computador
+        function computerMove() {
+            if (!gameState.gameActive) return;
+
+            let move;
+
+            switch (gameState.difficulty) {
+                case 'easy':
+                    move = getRandomMove();
+                    break;
+                case 'medium':
+                    move = Math.random() > 0.5 ? getWinningMove() : getRandomMove();
+                    break;
+                case 'hard':
+                    move = getBestMove();
+                    break;
+                default:
+                    move = getRandomMove();
+            }
+
+            if (move !== -1) {
+                makeMove(move, 'O');
+
+                const winner = checkWinner();
+                if (winner) {
+                    handleGameEnd(winner);
+                } else {
+                    changePlayer();
+                }
+            }
+        }
+
+        // Obter jogada aleatória
+        function getRandomMove() {
+            const emptyCells = gameState.board
+                .map((cell, index) => cell === '' ? index : null)
+                .filter(val => val !== null);
+
+            return emptyCells.length > 0
+                ? emptyCells[Math.floor(Math.random() * emptyCells.length)]
+                : -1;
+        }
+
+        // Obter jogada vencedora (se existir)
+        function getWinningMove() {
+            // Verificar se o computador pode vencer
+            for (let condition of winningConditions) {
+                const [a, b, c] = condition;
+                if (gameState.board[a] === 'O' && gameState.board[b] === 'O' && gameState.board[c] === '') return c;
+                if (gameState.board[a] === 'O' && gameState.board[c] === 'O' && gameState.board[b] === '') return b;
+                if (gameState.board[b] === 'O' && gameState.board[c] === 'O' && gameState.board[a] === '') return a;
+            }
+
+            // Verificar se precisa bloquear o jogador
+            for (let condition of winningConditions) {
+                const [a, b, c] = condition;
+                if (gameState.board[a] === 'X' && gameState.board[b] === 'X' && gameState.board[c] === '') return c;
+                if (gameState.board[a] === 'X' && gameState.board[c] === 'X' && gameState.board[b] === '') return b;
+                if (gameState.board[b] === 'X' && gameState.board[c] === 'X' && gameState.board[a] === '') return a;
+            }
+
+            return -1;
+        }
+
+        // Obter melhor jogada (algoritmo minimax)
+        function getBestMove() {
+            // Implementação simplificada do minimax
+            const emptyCells = gameState.board
+                .map((cell, index) => cell === '' ? index : null)
+                .filter(val => val !== null);
+
+            // Se o centro estiver vazio, priorize
+            if (gameState.board[4] === '') return 4;
+
+            // Se não, verifique cantos
+            const corners = [0, 2, 6, 8];
+            const emptyCorners = corners.filter(index => gameState.board[index] === '');
+            if (emptyCorners.length > 0) {
+                return emptyCorners[Math.floor(Math.random() * emptyCorners.length)];
+            }
+
+            // Se não, qualquer movimento válido
+            return emptyCells.length > 0
+                ? emptyCells[Math.floor(Math.random() * emptyCells.length)]
+                : -1;
+        }
+
+        // Alternar modo de jogo
+        function toggleGameMode() {
+            gameState.vsComputer = !gameState.vsComputer;
+            modeBtn.innerHTML = gameState.vsComputer
+                ? '<i class="fas fa-user mr-2"></i>Vs Jogador'
+                : '<i class="fas fa-robot mr-2"></i>Vs Computador';
+
+            resetGame();
+        }
+
+        // Event listeners
+        resetBtn.addEventListener('click', resetGame);
+        modeBtn.addEventListener('click', toggleGameMode);
+        playAgainBtn.addEventListener('click', resetGame);
+        closeModalBtn.addEventListener('click', () => winModal.classList.add('hidden'));
+
+        // Iniciar o jogo
+        initGame();
+    </script>
+
+    <!--  <p style="text-align: center;">&copy;Todos os direitos reservados, arthurdoxadrez</p> -->
+</body>
+
+</html>
